@@ -49,7 +49,7 @@ export const SelectionProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     useEffect(() => {
         if (!isLoading) {
             const isSelectionRoute = location.pathname.startsWith('/selection');
-            const isAuthRoute = location.pathname.startsWith('/auth');
+            const isAuthRoute = location.pathname.startsWith('/auth') || location.pathname.startsWith('/register') || location.pathname.startsWith('/login') || location.pathname.startsWith('/admin') || location.pathname.startsWith('/profile');
 
             // Si pas de sélection et pas sur une route de sélection ou d'auth
             if (!selection && !isSelectionRoute && !isAuthRoute) {

@@ -3,7 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSelection } from '../../context/SelectionContext';
 import { filiereService } from '../../services/api/filiereService';
-import { UserPlus, ArrowLeft, AlertCircle, CheckCircle, Lock, Mail, User, GraduationCap } from 'lucide-react';
+import { validateEmail } from '../../utils/emailValidation';
+import { UserPlus, ArrowLeft, AlertCircle, CheckCircle, Lock, Mail, User, GraduationCap, Loader2 } from 'lucide-react';
 
 interface Filiere {
     id: string;
@@ -58,8 +59,9 @@ const RegisterPage: React.FC = () => {
             return;
         }
 
-        if (!email.trim() || !email.includes('@')) {
-            setError('Veuillez saisir une adresse email valide.');
+        const emailCheck = validateEmail(email);
+        if (!emailCheck.isValid) {
+            setError(emailCheck.error || 'Veuillez saisir une adresse email valide.');
             return;
         }
 
@@ -83,8 +85,13 @@ const RegisterPage: React.FC = () => {
                 navigate('/modules');
             }, 1000);
         } catch (err: unknown) {
+            console.error('Erreur inscription:', err);
             if (err instanceof Error) {
-                setError(err.message);
+                if (err.message.includes('Failed to fetch') || err.name === 'TypeError') {
+                    setError("Impossible de contacter le serveur backend. En production, assurez-vous que la variable VITE_API_URL est configurée.");
+                } else {
+                    setError(err.message);
+                }
             } else {
                 setError("Une erreur est survenue lors de l'inscription.");
             }
@@ -239,7 +246,10 @@ const RegisterPage: React.FC = () => {
                             className="w-full mt-2 py-3 bg-[#E05320] hover:bg-[#C94518] disabled:opacity-50 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
                         >
                             {loading ? (
-                                <span>Création du compte...</span>
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <span>Création du compte...</span>
+                                </>
                             ) : (
                                 <>
                                     <UserPlus className="w-4 h-4" />
