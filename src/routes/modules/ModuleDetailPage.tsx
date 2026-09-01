@@ -550,7 +550,7 @@ const ModuleDetailPage: React.FC = () => {
                                             <FolderX className="w-6 h-6" />
                                         </div>
                                         <p className="text-xs font-bold text-[#12100E]">Aucune ressource dans la catégorie {activeTab}</p>
-                                        <p className="text-[11px] text-[#8E8A83]">Les délégués et administrateurs peuvent téléverser des documents depuis le Dashboard Admin.</p>
+                                        {/* <p className="text-[11px] text-[#8E8A83]">Les délégués et administrateurs peuvent téléverser des documents depuis le Dashboard Admin.</p> */}
                                     </div>
                                 )}
                             </div>
