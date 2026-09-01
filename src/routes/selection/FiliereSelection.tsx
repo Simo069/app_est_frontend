@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelection } from '../../context/SelectionContext';
-import { Monitor, Server, HardHat, Radio, Zap, BarChart3 } from 'lucide-react';
+// import { Monitor, Server, HardHat, Radio, Zap, BarChart3 } from 'lucide-react';
 import { filiereService } from '../../services/api/filiereService';
 interface Filiere {
     id: string;
@@ -172,7 +172,8 @@ const FiliereSelection: React.FC = () => {
 
             {/* Liste des filières */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-12">
-                {filieres.map((filiere, index) => {
+                {/* {filieres.map((filiere, index) => { */}
+                {filieres.map((filiere) => {
                     const isSelected =
                         selectedFiliere === filiere.id;
 
