@@ -350,7 +350,7 @@ const ModuleDetailPage: React.FC = () => {
                     {/* COLUMN 1: LEFT SIDEBAR (MODULES LIST & SEMESTER) */}
                     <div className="lg:col-span-3 space-y-4">
                         {/* Semester Tabs */}
-                        <div className="grid grid-cols-2 gap-2 p-1 bg-white border border-[#E5E3D8] rounded-xl shadow-2xs">
+                        {/* <div className="grid grid-cols-2 gap-2 p-1 bg-white border border-[#E5E3D8] rounded-xl shadow-2xs">
                             {semestres.map(s => {
                                 const isSelected = selectedSemester === s.id;
                                 return (
@@ -367,7 +367,7 @@ const ModuleDetailPage: React.FC = () => {
                                     </button>
                                 );
                             })}
-                        </div>
+                        </div> */}
 
                         {/* Modules Header */}
                         <div className="bg-white border border-[#E5E3D8] rounded-2xl p-4 shadow-xs">
