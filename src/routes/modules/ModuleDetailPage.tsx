@@ -77,74 +77,99 @@ const ModuleDetailPage: React.FC = () => {
     const levelDisplay = selection?.niveauLabel || '1ère Année';
     const filiereDisplay = selection?.filiereLabel || 'Filière';
 
-    // 1. Fetch Semesters & All Modules for Filiere in Parallel
+    // 1. Fetch Semesters & All Modules for Filiere in Parallel (Once per Filiere)
     useEffect(() => {
+        let isMounted = true;
+
         const fetchAllFiliereData = async () => {
             if (!selection?.filiere) {
                 navigate('/selection/filiere');
                 return;
             }
             try {
-                setLoadingSemestres(true);
+                // If semestres are already loaded for this filiere, don't set global full-screen loading
+                if (semestres.length === 0) {
+                    setLoadingSemestres(true);
+                }
+
                 const sems = await semestreService.getByFiliereId(selection.filiere);
+                if (!isMounted) return;
                 setSemestres(sems);
 
                 if (sems.length > 0) {
                     // Fetch all modules for all semestres of the filiere in parallel
                     const modulesArrays = await Promise.all(sems.map(s => moduleService.getBySemestreId(s.id)));
+                    if (!isMounted) return;
                     const allFiliereModules = modulesArrays.flat();
 
-                    // If URL contains a moduleId, find which semestre it belongs to
-                    if (moduleId) {
-                        const targetModule = allFiliereModules.find(m => m.id === moduleId);
-                        if (targetModule) {
-                            setSelectedSemester(targetModule.semestreId);
-                            setSelectedModule(targetModule);
-                        } else {
-                            setSelectedSemester(sems[0].id);
-                        }
+                    // Find target module from URL
+                    let targetModule = allFiliereModules.find(m => m.id === moduleId);
+                    if (!targetModule && allFiliereModules.length > 0) {
+                        targetModule = allFiliereModules[0];
+                    }
+
+                    if (targetModule) {
+                        setSelectedSemester(targetModule.semestreId);
+                        setSelectedModule(targetModule);
                     } else {
                         setSelectedSemester(sems[0].id);
                     }
                 }
             } catch (err) {
                 console.error(err);
-                setError('Erreur lors du chargement des semestres');
+                if (isMounted) setError('Erreur lors du chargement des semestres');
             } finally {
-                setLoadingSemestres(false);
+                if (isMounted) setLoadingSemestres(false);
             }
         };
 
         fetchAllFiliereData();
-    }, [selection?.filiere, navigate, moduleId]);
 
-    // 2. Load Modules for Active Selected Semester from Cache/API
+        return () => {
+            isMounted = false;
+        };
+    }, [selection?.filiere, navigate]);
+
+    // 2. Load Modules for Active Selected Semester instantly from Cache
     useEffect(() => {
-        const fetchModules = async () => {
-            if (!selectedSemester) return;
-            try {
-                setLoadingModules(true);
-                const data = await moduleService.getBySemestreId(selectedSemester);
-                setModules(data);
+        if (!selectedSemester) return;
 
-                if (moduleId) {
-                    const match = data.find(m => m.id === moduleId);
-                    if (match) {
-                        setSelectedModule(match);
-                    }
-                } else if (data.length > 0 && !selectedModule) {
-                    setSelectedModule(data[0]);
+        let isMounted = true;
+        const fetchModules = async () => {
+            try {
+                if (modules.length === 0) {
+                    setLoadingModules(true);
                 }
+                const data = await moduleService.getBySemestreId(selectedSemester);
+                if (!isMounted) return;
+                setModules(data);
             } catch (err) {
                 console.error(err);
-                setError('Erreur lors du chargement des modules');
+                if (isMounted) setError('Erreur lors du chargement des modules');
             } finally {
-                setLoadingModules(false);
+                if (isMounted) setLoadingModules(false);
             }
         };
 
         fetchModules();
-    }, [selectedSemester, moduleId]);
+
+        return () => {
+            isMounted = false;
+        };
+    }, [selectedSemester]);
+
+    // 3. Instant Reactivity when clicking a module or changing URL param (0ms wait for layout)
+    useEffect(() => {
+        if (!moduleId || modules.length === 0) return;
+
+        const match = modules.find(m => m.id === moduleId);
+        if (match) {
+            setSelectedModule(match);
+            if (match.semestreId !== selectedSemester) {
+                setSelectedSemester(match.semestreId);
+            }
+        }
+    }, [moduleId, modules, selectedSemester]);
 
     // 3. Fetch Dynamic Resources for selected module from API
     useEffect(() => {

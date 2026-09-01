@@ -11,17 +11,28 @@ export interface Semestre {
     updatedAt?: string;
 }
 
+const filiereSemestresCache = new Map<string, Semestre[]>();
+
 export const semestreService = {
+    clearCache() {
+        filiereSemestresCache.clear();
+    },
+
     async getAll(): Promise<Semestre[]> {
         const res = await fetch(`${API_URL}/semestre`);
         if (!res.ok) throw new Error('Impossible de récupérer les semestres');
         return res.json();
     },
 
-    async getByFiliereId(filiereId: string): Promise<Semestre[]> {
+    async getByFiliereId(filiereId: string, skipCache = false): Promise<Semestre[]> {
+        if (!skipCache && filiereSemestresCache.has(filiereId)) {
+            return filiereSemestresCache.get(filiereId)!;
+        }
         const res = await fetch(`${API_URL}/semestre/filiere/${filiereId}`);
         if (!res.ok) throw new Error('Impossible de récupérer les semestres pour cette filière');
-        return res.json();
+        const data: Semestre[] = await res.json();
+        filiereSemestresCache.set(filiereId, data);
+        return data;
     },
 
     async getById(id: string): Promise<Semestre> {
@@ -41,6 +52,7 @@ export const semestreService = {
             const message = err.message || 'Erreur lors de la création du semestre';
             throw new Error(Array.isArray(message) ? message[0] : message);
         }
+        this.clearCache();
         return res.json();
     },
 
@@ -55,6 +67,7 @@ export const semestreService = {
             const message = err.message || 'Erreur lors de la modification du semestre';
             throw new Error(Array.isArray(message) ? message[0] : message);
         }
+        this.clearCache();
         return res.json();
     },
 
@@ -64,5 +77,6 @@ export const semestreService = {
             headers: getAuthHeaders(token)
         });
         if (!res.ok) throw new Error('Impossible de supprimer ce semestre');
+        this.clearCache();
     }
 };
