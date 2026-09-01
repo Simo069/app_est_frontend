@@ -36,19 +36,23 @@ const ModulesPage: React.FC = () => {
     const levelDisplay = selection?.niveauLabel || 'Niveau';
     const filiereDisplay = selection?.filiereLabel || 'Filiere';
 
-    // 1. RECUPERER LES SEMESTRES
+    // 1. RECUPERER LES SEMESTRES & PRE-CHARGER TOUS LES MODULES DE LA FILIERE
     useEffect(() => {
-        const fetchSemestres = async () => {
+        const fetchSemestresAndAllModules = async () => {
             if (!selection?.filiere) {
                 navigate('/selection/filiere');
                 return;
             }
             try {
                 setLoadingSemestres(true);
-                const data = await semestreService.getByFiliereId(selection.filiere);
-                setSemestres(data);
-                if (data.length > 0) {
-                    setSelectedSemester(data[0].id);
+                const semData = await semestreService.getByFiliereId(selection.filiere);
+                setSemestres(semData);
+                if (semData.length > 0) {
+                    setSelectedSemester(semData[0].id);
+                    // Pré-charger tous les modules des semestres en arrière-plan / parallèle
+                    Promise.all(semData.map(s => moduleService.getBySemestreId(s.id))).catch(err => {
+                        console.error('Erreur pré-chargement modules:', err);
+                    });
                 }
             } catch (error) {
                 console.error(error);
@@ -58,10 +62,10 @@ const ModulesPage: React.FC = () => {
             }
         };
 
-        fetchSemestres();
+        fetchSemestresAndAllModules();
     }, [selection?.filiere, navigate]);
 
-    // 2. RECUPERER LES MODULES
+    // 2. RECUPERER LES MODULES DU SEMESTRE SELECTIONNE
     useEffect(() => {
         const fetchModules = async () => {
             if (!selectedSemester) {

@@ -77,19 +77,35 @@ const ModuleDetailPage: React.FC = () => {
     const levelDisplay = selection?.niveauLabel || '1ère Année';
     const filiereDisplay = selection?.filiereLabel || 'Filière';
 
-    // 1. Fetch Semesters from API
+    // 1. Fetch Semesters & All Modules for Filiere in Parallel
     useEffect(() => {
-        const fetchSemestres = async () => {
+        const fetchAllFiliereData = async () => {
             if (!selection?.filiere) {
                 navigate('/selection/filiere');
                 return;
             }
             try {
                 setLoadingSemestres(true);
-                const data = await semestreService.getByFiliereId(selection.filiere);
-                setSemestres(data);
-                if (data.length > 0) {
-                    setSelectedSemester(data[0].id);
+                const sems = await semestreService.getByFiliereId(selection.filiere);
+                setSemestres(sems);
+
+                if (sems.length > 0) {
+                    // Fetch all modules for all semestres of the filiere in parallel
+                    const modulesArrays = await Promise.all(sems.map(s => moduleService.getBySemestreId(s.id)));
+                    const allFiliereModules = modulesArrays.flat();
+
+                    // If URL contains a moduleId, find which semestre it belongs to
+                    if (moduleId) {
+                        const targetModule = allFiliereModules.find(m => m.id === moduleId);
+                        if (targetModule) {
+                            setSelectedSemester(targetModule.semestreId);
+                            setSelectedModule(targetModule);
+                        } else {
+                            setSelectedSemester(sems[0].id);
+                        }
+                    } else {
+                        setSelectedSemester(sems[0].id);
+                    }
                 }
             } catch (err) {
                 console.error(err);
@@ -99,10 +115,10 @@ const ModuleDetailPage: React.FC = () => {
             }
         };
 
-        fetchSemestres();
-    }, [selection?.filiere, navigate]);
+        fetchAllFiliereData();
+    }, [selection?.filiere, navigate, moduleId]);
 
-    // 2. Fetch Modules for Selected Semester from API
+    // 2. Load Modules for Active Selected Semester from Cache/API
     useEffect(() => {
         const fetchModules = async () => {
             if (!selectedSemester) return;
@@ -115,10 +131,8 @@ const ModuleDetailPage: React.FC = () => {
                     const match = data.find(m => m.id === moduleId);
                     if (match) {
                         setSelectedModule(match);
-                    } else if (data.length > 0) {
-                        setSelectedModule(data[0]);
                     }
-                } else if (data.length > 0) {
+                } else if (data.length > 0 && !selectedModule) {
                     setSelectedModule(data[0]);
                 }
             } catch (err) {
@@ -131,18 +145,6 @@ const ModuleDetailPage: React.FC = () => {
 
         fetchModules();
     }, [selectedSemester, moduleId]);
-
-    // Update selected module when URL param or module list changes
-    useEffect(() => {
-        if (modules.length > 0) {
-            if (moduleId) {
-                const found = modules.find(m => m.id === moduleId);
-                if (found) setSelectedModule(found);
-            } else {
-                setSelectedModule(modules[0]);
-            }
-        }
-    }, [moduleId, modules]);
 
     // 3. Fetch Dynamic Resources for selected module from API
     useEffect(() => {

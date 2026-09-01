@@ -7,21 +7,37 @@ export interface ModuleItem {
     code: string | null;
     semestreId: string;
     semestre?: Semestre;
+    _count?: {
+        resources: number;
+    };
     createdAt?: string;
     updatedAt?: string;
 }
 
+// In-memory cache for ultra-fast instant switching between semestres and modules
+const semestreModulesCache = new Map<string, ModuleItem[]>();
+
 export const moduleService = {
+    clearCache() {
+        semestreModulesCache.clear();
+    },
+
     async getAll(): Promise<ModuleItem[]> {
         const res = await fetch(`${API_URL}/modules`);
         if (!res.ok) throw new Error('Impossible de récupérer la liste des modules');
         return res.json();
     },
 
-    async getBySemestreId(semestreId: string): Promise<ModuleItem[]> {
+    async getBySemestreId(semestreId: string, skipCache = false): Promise<ModuleItem[]> {
+        if (!skipCache && semestreModulesCache.has(semestreId)) {
+            return semestreModulesCache.get(semestreId)!;
+        }
+
         const res = await fetch(`${API_URL}/modules/semestre/${semestreId}`);
         if (!res.ok) throw new Error('Impossible de récupérer les modules pour ce semestre');
-        return res.json();
+        const data: ModuleItem[] = await res.json();
+        semestreModulesCache.set(semestreId, data);
+        return data;
     },
 
     async getById(id: string): Promise<ModuleItem> {
@@ -40,6 +56,7 @@ export const moduleService = {
             const err = await res.json().catch(() => ({}));
             throw new Error(err.message || 'Erreur lors de la création du module');
         }
+        this.clearCache();
         return res.json();
     },
 
@@ -53,6 +70,7 @@ export const moduleService = {
             const err = await res.json().catch(() => ({}));
             throw new Error(err.message || 'Erreur lors de la modification du module');
         }
+        this.clearCache();
         return res.json();
     },
 
@@ -62,5 +80,6 @@ export const moduleService = {
             headers: getAuthHeaders(token)
         });
         if (!res.ok) throw new Error('Impossible de supprimer ce module');
+        this.clearCache();
     }
 };
