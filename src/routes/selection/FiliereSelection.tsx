@@ -177,23 +177,23 @@ const FiliereSelection: React.FC = () => {
                         selectedFiliere === filiere.id;
 
                     // Icônes selon la position
-                    const icons = [
-                        <Monitor className="w-6 h-6 text-[#2B52DD]" />,
-                        <Server className="w-6 h-6 text-[#107C41]" />,
-                        <HardHat className="w-6 h-6 text-[#D97706]" />,
-                        <Radio className="w-6 h-6 text-[#7C3AED]" />,
-                        <Zap className="w-6 h-6 text-[#E05320]" />,
-                        <BarChart3 className="w-6 h-6 text-[#0284C7]" />,
-                    ];
+                    // const icons = [
+                    //     <Monitor className="w-6 h-6 text-[#2B52DD]" />,
+                    //     <Server className="w-6 h-6 text-[#107C41]" />,
+                    //     <HardHat className="w-6 h-6 text-[#D97706]" />,
+                    //     <Radio className="w-6 h-6 text-[#7C3AED]" />,
+                    //     <Zap className="w-6 h-6 text-[#E05320]" />,
+                    //     <BarChart3 className="w-6 h-6 text-[#0284C7]" />,
+                    // ];
 
-                    const iconBgs = [
-                        'bg-[#EEF2FF]',
-                        'bg-[#EBF8F2]',
-                        'bg-[#FEF3C7]',
-                        'bg-[#F3E8FF]',
-                        'bg-[#FDF0EB]',
-                        'bg-[#E0F2FE]',
-                    ];
+                    // const iconBgs = [
+                    //     'bg-[#EEF2FF]',
+                    //     'bg-[#EBF8F2]',
+                    //     'bg-[#FEF3C7]',
+                    //     'bg-[#F3E8FF]',
+                    //     'bg-[#FDF0EB]',
+                    //     'bg-[#E0F2FE]',
+                    // ];
 
                     return (
                         <div
@@ -212,7 +212,7 @@ const FiliereSelection: React.FC = () => {
                             `}
                         >
                             <div className="flex items-center gap-4">
-                                <div
+                                {/* <div
                                     className={`
                                         w-14 h-14 rounded-2xl 
                                         ${iconBgs[index % iconBgs.length]}
@@ -221,7 +221,7 @@ const FiliereSelection: React.FC = () => {
                                     `}
                                 >
                                     {icons[index % icons.length]}
-                                </div>
+                                </div> */}
 
                                 <div>
                                     <h3 className="font-syne font-extrabold text-lg sm:text-xl text-[#12100E] mb-0.5">
