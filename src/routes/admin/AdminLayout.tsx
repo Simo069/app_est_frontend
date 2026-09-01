@@ -4,6 +4,7 @@ import {
     LayoutDashboard,
     GraduationCap,
     BookOpen,
+    Calendar,
     FolderKanban,
     FileText,
     Users,
@@ -66,6 +67,16 @@ const AdminLayout: React.FC = () => {
                     >
                         <BookOpen className="w-4 h-4" />
                         <span>Gestion Filières</span>
+                    </NavLink>
+
+                    <NavLink
+                        to="/admin/semestres"
+                        className={({ isActive }) => `px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+                            isActive ? 'bg-[#12100E] text-white shadow-xs' : 'text-[#8E8A83] hover:bg-[#F7F6F0]'
+                        }`}
+                    >
+                        <Calendar className="w-4 h-4" />
+                        <span>Gestion Semestres</span>
                     </NavLink>
 
                     <NavLink

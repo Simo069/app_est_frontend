@@ -23,6 +23,7 @@ import AdminLayout from './routes/admin/AdminLayout';
 import AdminOverviewPage from './routes/admin/pages/AdminOverviewPage';
 import AdminNiveauxPage from './routes/admin/pages/AdminNiveauxPage';
 import AdminFilieresPage from './routes/admin/pages/AdminFilieresPage';
+import AdminSemestresPage from './routes/admin/pages/AdminSemestresPage';
 import AdminModulesPage from './routes/admin/pages/AdminModulesPage';
 import AdminRessourcesPage from './routes/admin/pages/AdminRessourcesPage';
 import AdminUsersPage from './routes/admin/pages/AdminUsersPage';
@@ -52,6 +53,7 @@ const AppContent: React.FC = () => {
               <Route path="overview" element={<AdminOverviewPage />} />
               <Route path="niveaux" element={<AdminNiveauxPage />} />
               <Route path="filieres" element={<AdminFilieresPage />} />
+              <Route path="semestres" element={<AdminSemestresPage />} />
               <Route path="modules" element={<AdminModulesPage />} />
               <Route path="ressources" element={<AdminRessourcesPage />} />
               <Route path="users" element={<AdminUsersPage />} />
