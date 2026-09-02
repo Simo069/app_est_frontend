@@ -85,15 +85,29 @@ const AppContent: React.FC = () => {
   );
 };
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes, pas de refetch inutile
+      gcTime: 10 * 60 * 1000, // Conservation des données 10 min
+      refetchOnWindowFocus: false, // Empêche les refetch inutiles au changement d'onglet
+    },
+  },
+});
+
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <SelectionProvider>
-          <AppContent />
-        </SelectionProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <SelectionProvider>
+            <AppContent />
+          </SelectionProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 
