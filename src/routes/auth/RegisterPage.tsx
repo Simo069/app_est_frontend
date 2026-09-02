@@ -184,13 +184,13 @@ const RegisterPage: React.FC = () => {
 
                         <div>
                             <label className="block text-xs font-bold text-[#12100E] mb-1.5">
-                                Email institutionnel
+                                Email 
                             </label>
                             <div className="relative">
                                 <Mail className="w-4 h-4 absolute left-3.5 top-3.5 text-[#8E8A83]" />
                                 <input
                                     type="email"
-                                    placeholder="hamza.alaoui@est-casa.ma"
+                                    placeholder="hamza.alaoui@gmail.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
