@@ -3,6 +3,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { userService } from '../../../services/api/userService';
 import type { UserRole } from '../../../services/api/userService';
 import type { UserProfile } from '../../../context/AuthContext';
+import { Pagination } from '../../../components/common/Pagination';
 import { CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 
 const AdminUsersPage: React.FC = () => {
@@ -12,6 +13,10 @@ const AdminUsersPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(8);
 
     const loadUsers = async () => {
         if (!token) return;
@@ -34,6 +39,19 @@ const AdminUsersPage: React.FC = () => {
         setSuccessMsg(msg);
         setTimeout(() => setSuccessMsg(null), 3000);
     };
+
+    // Pagination calculations
+    const totalPages = Math.ceil(users.length / pageSize) || 1;
+    const paginatedUsers = users.slice(
+        (currentPage - 1) * pageSize,
+        currentPage * pageSize
+    );
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(1);
+        }
+    }, [users.length, totalPages, currentPage]);
 
     const handleChangeRole = async (userId: string, newRole: UserRole) => {
         if (!token) return;
@@ -81,7 +99,7 @@ const AdminUsersPage: React.FC = () => {
             {loading ? (
                 <p className="text-xs text-[#8E8A83] text-center py-6">Chargement...</p>
             ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto space-y-4">
                     <table className="w-full text-left text-xs">
                         <thead>
                             <tr className="border-b border-[#E5E3D8] text-[#8E8A83] uppercase tracking-wider">
@@ -93,7 +111,7 @@ const AdminUsersPage: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#F0EEE6]">
-                            {users.map(u => (
+                            {paginatedUsers.map(u => (
                                 <tr key={u.id} className="hover:bg-[#FAF9F5]">
                                     <td className="py-3.5 px-4 font-bold text-[#12100E]">
                                         {u.firstName} {u.lastName}
@@ -131,8 +149,28 @@ const AdminUsersPage: React.FC = () => {
                                     </td>
                                 </tr>
                             ))}
+
+                            {users.length === 0 && (
+                                <tr>
+                                    <td colSpan={5} className="py-8 text-center text-[#8E8A83]">
+                                        Aucun utilisateur trouvé.
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
+
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        totalItems={users.length}
+                        pageSize={pageSize}
+                        onPageChange={setCurrentPage}
+                        onPageSizeChange={(size) => {
+                            setPageSize(size);
+                            setCurrentPage(1);
+                        }}
+                    />
                 </div>
             )}
         </div>

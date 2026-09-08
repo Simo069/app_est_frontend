@@ -6,6 +6,7 @@ import { filiereService } from '../../../services/api/filiereService';
 import type { Filiere } from '../../../services/api/filiereService';
 import { niveauService } from '../../../services/api/niveauService';
 import type { Niveau } from '../../../services/api/niveauService';
+import { Pagination } from '../../../components/common/Pagination';
 import { Plus, Trash2, Edit3, X, CheckCircle, AlertCircle, Filter, Calendar } from 'lucide-react';
 
 const AdminSemestresPage: React.FC = () => {
@@ -21,6 +22,10 @@ const AdminSemestresPage: React.FC = () => {
     // Filters
     const [selectedNiveauFilter, setSelectedNiveauFilter] = useState<string>('');
     const [selectedFiliereFilter, setSelectedFiliereFilter] = useState<string>('');
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(8);
 
     // Modal state
     const [isOpen, setIsOpen] = useState(false);
@@ -78,6 +83,19 @@ const AdminSemestresPage: React.FC = () => {
         }
         return true;
     });
+
+    // Pagination calculations
+    const totalPages = Math.ceil(displayedSemestres.length / pageSize) || 1;
+    const paginatedSemestres = displayedSemestres.slice(
+        (currentPage - 1) * pageSize,
+        currentPage * pageSize
+    );
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(1);
+        }
+    }, [displayedSemestres.length, totalPages, currentPage]);
 
     const handleOpenModalForCreate = () => {
         setEditingId(null);
@@ -171,6 +189,7 @@ const AdminSemestresPage: React.FC = () => {
                             onChange={(e) => {
                                 setSelectedNiveauFilter(e.target.value);
                                 setSelectedFiliereFilter('');
+                                setCurrentPage(1);
                             }}
                             className="w-full px-3 py-2 rounded-xl border border-[#E5E3D8] bg-white text-xs font-medium focus:outline-none focus:border-[#E05320]"
                         >
@@ -186,7 +205,10 @@ const AdminSemestresPage: React.FC = () => {
                         <label className="block text-[11px] font-bold text-[#8E8A83] mb-1">Filière</label>
                         <select
                             value={selectedFiliereFilter}
-                            onChange={(e) => setSelectedFiliereFilter(e.target.value)}
+                            onChange={(e) => {
+                                setSelectedFiliereFilter(e.target.value);
+                                setCurrentPage(1);
+                            }}
                             className="w-full px-3 py-2 rounded-xl border border-[#E5E3D8] bg-white text-xs font-medium focus:outline-none focus:border-[#E05320]"
                         >
                             <option value="">Toutes les filières</option>
@@ -227,7 +249,7 @@ const AdminSemestresPage: React.FC = () => {
                     </p>
                 </div>
             ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto space-y-4">
                     <table className="w-full text-left text-xs">
                         <thead>
                             <tr className="border-b border-[#E5E3D8] text-[#8E8A83] uppercase tracking-wider">
@@ -239,7 +261,7 @@ const AdminSemestresPage: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#F0EEE6]">
-                            {displayedSemestres.map(s => {
+                            {paginatedSemestres.map(s => {
                                 const fil = filieres.find(f => f.id === s.filiereId);
                                 const niv = niveaux.find(n => n.id === fil?.niveauId);
                                 return (
@@ -279,6 +301,18 @@ const AdminSemestresPage: React.FC = () => {
                             })}
                         </tbody>
                     </table>
+
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        totalItems={displayedSemestres.length}
+                        pageSize={pageSize}
+                        onPageChange={setCurrentPage}
+                        onPageSizeChange={(size) => {
+                            setPageSize(size);
+                            setCurrentPage(1);
+                        }}
+                    />
                 </div>
             )}
 

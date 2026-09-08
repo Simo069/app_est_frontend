@@ -8,6 +8,7 @@ import { filiereService } from '../../../services/api/filiereService';
 import type { Filiere } from '../../../services/api/filiereService';
 import { niveauService } from '../../../services/api/niveauService';
 import type { Niveau } from '../../../services/api/niveauService';
+import { Pagination } from '../../../components/common/Pagination';
 import { Plus, Trash2, Edit3, X, CheckCircle, AlertCircle, Filter } from 'lucide-react';
 
 const AdminModulesPage: React.FC = () => {
@@ -25,6 +26,10 @@ const AdminModulesPage: React.FC = () => {
     const [selectedNiveauFilter, setSelectedNiveauFilter] = useState<string>('');
     const [selectedFiliereFilter, setSelectedFiliereFilter] = useState<string>('');
     const [selectedSemestreFilter, setSelectedSemestreFilter] = useState<string>('');
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(8);
 
     // Modal state
     const [isOpen, setIsOpen] = useState(false);
@@ -97,6 +102,19 @@ const AdminModulesPage: React.FC = () => {
         if (selectedSemestreFilter && m.semestreId !== selectedSemestreFilter) return false;
         return true;
     });
+
+    // Pagination calculations
+    const totalPages = Math.ceil(displayedModules.length / pageSize) || 1;
+    const paginatedModules = displayedModules.slice(
+        (currentPage - 1) * pageSize,
+        currentPage * pageSize
+    );
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(1);
+        }
+    }, [displayedModules.length, totalPages, currentPage]);
 
     const handleOpenCreateModal = () => {
         setEditingId(null);
@@ -196,6 +214,7 @@ const AdminModulesPage: React.FC = () => {
                                 setSelectedNiveauFilter(e.target.value);
                                 setSelectedFiliereFilter('');
                                 setSelectedSemestreFilter('');
+                                setCurrentPage(1);
                             }}
                             className="w-full px-3 py-2 rounded-xl border border-[#E5E3D8] bg-white text-xs font-medium focus:outline-none focus:border-[#E05320]"
                         >
@@ -214,6 +233,7 @@ const AdminModulesPage: React.FC = () => {
                             onChange={(e) => {
                                 setSelectedFiliereFilter(e.target.value);
                                 setSelectedSemestreFilter('');
+                                setCurrentPage(1);
                             }}
                             className="w-full px-3 py-2 rounded-xl border border-[#E5E3D8] bg-white text-xs font-medium focus:outline-none focus:border-[#E05320]"
                         >
@@ -229,7 +249,10 @@ const AdminModulesPage: React.FC = () => {
                         <label className="block text-[11px] font-bold text-[#8E8A83] mb-1">Semestre</label>
                         <select
                             value={selectedSemestreFilter}
-                            onChange={(e) => setSelectedSemestreFilter(e.target.value)}
+                            onChange={(e) => {
+                                setSelectedSemestreFilter(e.target.value);
+                                setCurrentPage(1);
+                            }}
                             className="w-full px-3 py-2 rounded-xl border border-[#E5E3D8] bg-white text-xs font-medium focus:outline-none focus:border-[#E05320]"
                         >
                             <option value="">Tous les semestres</option>
@@ -262,7 +285,7 @@ const AdminModulesPage: React.FC = () => {
                     <p className="text-xs font-bold text-[#12100E]">Aucun module trouvé</p>
                 </div>
             ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto space-y-4">
                     <table className="w-full text-left text-xs">
                         <thead>
                             <tr className="border-b border-[#E5E3D8] text-[#8E8A83] uppercase tracking-wider">
@@ -274,7 +297,7 @@ const AdminModulesPage: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#F0EEE6]">
-                            {displayedModules.map(m => {
+                            {paginatedModules.map(m => {
                                 const sem = semestres.find(s => s.id === m.semestreId);
                                 const fil = filieres.find(f => f.id === sem?.filiereId);
                                 const niv = niveaux.find(n => n.id === fil?.niveauId);
@@ -308,6 +331,18 @@ const AdminModulesPage: React.FC = () => {
                             })}
                         </tbody>
                     </table>
+
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        totalItems={displayedModules.length}
+                        pageSize={pageSize}
+                        onPageChange={setCurrentPage}
+                        onPageSizeChange={(size) => {
+                            setPageSize(size);
+                            setCurrentPage(1);
+                        }}
+                    />
                 </div>
             )}
 
@@ -421,4 +456,3 @@ const AdminModulesPage: React.FC = () => {
 };
 
 export default AdminModulesPage;
-

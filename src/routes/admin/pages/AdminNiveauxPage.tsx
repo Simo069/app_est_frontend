@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { niveauService } from '../../../services/api/niveauService';
 import type { Niveau } from '../../../services/api/niveauService';
+import { Pagination } from '../../../components/common/Pagination';
 import { Plus, Trash2, Edit3, X, CheckCircle, AlertCircle } from 'lucide-react';
 
 const AdminNiveauxPage: React.FC = () => {
@@ -11,6 +12,10 @@ const AdminNiveauxPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(8);
 
     // Modal state
     const [isOpen, setIsOpen] = useState(false);
@@ -38,6 +43,19 @@ const AdminNiveauxPage: React.FC = () => {
         setSuccessMsg(msg);
         setTimeout(() => setSuccessMsg(null), 3000);
     };
+
+    // Pagination calculations
+    const totalPages = Math.ceil(niveaux.length / pageSize) || 1;
+    const paginatedNiveaux = niveaux.slice(
+        (currentPage - 1) * pageSize,
+        currentPage * pageSize
+    );
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(1);
+        }
+    }, [niveaux.length, totalPages, currentPage]);
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -108,7 +126,7 @@ const AdminNiveauxPage: React.FC = () => {
             {loading ? (
                 <p className="text-xs text-[#8E8A83] text-center py-6">Chargement...</p>
             ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto space-y-4">
                     <table className="w-full text-left text-xs">
                         <thead>
                             <tr className="border-b border-[#E5E3D8] text-[#8E8A83] uppercase tracking-wider">
@@ -118,7 +136,7 @@ const AdminNiveauxPage: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#F0EEE6]">
-                            {niveaux.map(n => (
+                            {paginatedNiveaux.map(n => (
                                 <tr key={n.id} className="hover:bg-[#FAF9F5]">
                                     <td className="py-3.5 px-4 font-bold text-[#E05320]">{n.order}</td>
                                     <td className="py-3.5 px-4 font-bold text-[#12100E]">{n.name}</td>
@@ -143,8 +161,28 @@ const AdminNiveauxPage: React.FC = () => {
                                     </td>
                                 </tr>
                             ))}
+
+                            {niveaux.length === 0 && (
+                                <tr>
+                                    <td colSpan={3} className="py-8 text-center text-[#8E8A83]">
+                                        Aucun niveau trouvé.
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
+
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        totalItems={niveaux.length}
+                        pageSize={pageSize}
+                        onPageChange={setCurrentPage}
+                        onPageSizeChange={(size) => {
+                            setPageSize(size);
+                            setCurrentPage(1);
+                        }}
+                    />
                 </div>
             )}
 

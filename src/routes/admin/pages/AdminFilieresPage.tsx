@@ -4,6 +4,7 @@ import { filiereService } from '../../../services/api/filiereService';
 import type { Filiere } from '../../../services/api/filiereService';
 import { niveauService } from '../../../services/api/niveauService';
 import type { Niveau } from '../../../services/api/niveauService';
+import { Pagination } from '../../../components/common/Pagination';
 import { Plus, Trash2, Edit3, X, CheckCircle, AlertCircle } from 'lucide-react';
 
 const AdminFilieresPage: React.FC = () => {
@@ -14,6 +15,10 @@ const AdminFilieresPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(8);
 
     // Modal state
     const [isOpen, setIsOpen] = useState(false);
@@ -46,6 +51,19 @@ const AdminFilieresPage: React.FC = () => {
         setSuccessMsg(msg);
         setTimeout(() => setSuccessMsg(null), 3000);
     };
+
+    // Pagination calculations
+    const totalPages = Math.ceil(filieres.length / pageSize) || 1;
+    const paginatedFilieres = filieres.slice(
+        (currentPage - 1) * pageSize,
+        currentPage * pageSize
+    );
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(1);
+        }
+    }, [filieres.length, totalPages, currentPage]);
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -118,7 +136,7 @@ const AdminFilieresPage: React.FC = () => {
             {loading ? (
                 <p className="text-xs text-[#8E8A83] text-center py-6">Chargement...</p>
             ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto space-y-4">
                     <table className="w-full text-left text-xs">
                         <thead>
                             <tr className="border-b border-[#E5E3D8] text-[#8E8A83] uppercase tracking-wider">
@@ -129,7 +147,7 @@ const AdminFilieresPage: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#F0EEE6]">
-                            {filieres.map(f => {
+                            {paginatedFilieres.map(f => {
                                 const parentNiv = niveaux.find(n => n.id === f.niveauId);
                                 return (
                                     <tr key={f.id} className="hover:bg-[#FAF9F5]">
@@ -159,8 +177,28 @@ const AdminFilieresPage: React.FC = () => {
                                     </tr>
                                 );
                             })}
+
+                            {filieres.length === 0 && (
+                                <tr>
+                                    <td colSpan={4} className="py-8 text-center text-[#8E8A83]">
+                                        Aucune filière trouvée.
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
+
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        totalItems={filieres.length}
+                        pageSize={pageSize}
+                        onPageChange={setCurrentPage}
+                        onPageSizeChange={(size) => {
+                            setPageSize(size);
+                            setCurrentPage(1);
+                        }}
+                    />
                 </div>
             )}
 

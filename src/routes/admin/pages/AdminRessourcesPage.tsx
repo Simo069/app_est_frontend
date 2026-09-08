@@ -10,6 +10,7 @@ import { moduleService } from '../../../services/api/moduleService';
 import type { ModuleItem } from '../../../services/api/moduleService';
 import { resourceService } from '../../../services/api/resourceService';
 import type { ResourceApiItem, ResourceTypeEnum } from '../../../services/api/resourceService';
+import { Pagination } from '../../../components/common/Pagination';
 import { Upload, CheckCircle, AlertCircle, Layers, Trash2, Download, Filter, FileText } from 'lucide-react';
 
 const AdminRessourcesPage: React.FC = () => {
@@ -20,6 +21,11 @@ const AdminRessourcesPage: React.FC = () => {
     const [filieres, setFilieres] = useState<Filiere[]>([]);
     const [semestres, setSemestres] = useState<Semestre[]>([]);
     const [modules, setModules] = useState<ModuleItem[]>([]);
+
+    // Global lists for filters
+    const [allFilieres, setAllFilieres] = useState<Filiere[]>([]);
+    const [allSemestres, setAllSemestres] = useState<Semestre[]>([]);
+    const [allModules, setAllModules] = useState<ModuleItem[]>([]);
 
     // Selected state hierarchy for Upload
     const [selectedNiveauId, setSelectedNiveauId] = useState('');
@@ -38,6 +44,10 @@ const AdminRessourcesPage: React.FC = () => {
     const [filterFiliereId, setFilterFiliereId] = useState<string>('ALL');
     const [filterModuleId, setFilterModuleId] = useState<string>('ALL');
     const [filterType, setFilterType] = useState<string>('ALL');
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(8);
 
     // UI Feedback
     const [uploading, setUploading] = useState(false);
@@ -59,17 +69,26 @@ const AdminRessourcesPage: React.FC = () => {
         }
     };
 
-    // 1. Initial Load: Fetch All Niveaux & Resources
+    // 1. Initial Load: Fetch All Niveaux, Filieres, Semestres, Modules & Resources
     useEffect(() => {
         const loadInitialData = async () => {
             try {
-                const nivs = await niveauService.getAll();
+                const [nivs, fils, sems, mods] = await Promise.all([
+                    niveauService.getAll(),
+                    filiereService.getAll(),
+                    semestreService.getAll(),
+                    moduleService.getAll(),
+                ]);
                 setNiveaux(nivs);
+                setAllFilieres(fils);
+                setAllSemestres(sems);
+                setAllModules(mods);
+
                 if (nivs.length > 0) {
                     setSelectedNiveauId(nivs[0].id);
                 }
             } catch (err) {
-                console.error('Erreur chargement niveaux:', err);
+                console.error('Erreur chargement données initiales:', err);
             }
         };
 
@@ -77,7 +96,7 @@ const AdminRessourcesPage: React.FC = () => {
         loadAllResources();
     }, [token]);
 
-    // 2. Fetch Filieres when Niveau changes (Upload)
+    // 2. Fetch Filieres when Niveau changes (Upload Form)
     useEffect(() => {
         const loadFilieres = async () => {
             if (!selectedNiveauId) {
@@ -103,7 +122,7 @@ const AdminRessourcesPage: React.FC = () => {
         loadFilieres();
     }, [selectedNiveauId]);
 
-    // 3. Fetch Semestres when Filiere changes (Upload)
+    // 3. Fetch Semestres when Filiere changes (Upload Form)
     useEffect(() => {
         const loadSemestres = async () => {
             if (!selectedFiliereId) {
@@ -129,7 +148,7 @@ const AdminRessourcesPage: React.FC = () => {
         loadSemestres();
     }, [selectedFiliereId]);
 
-    // 4. Fetch Modules when Semestre changes (Upload)
+    // 4. Fetch Modules when Semestre changes (Upload Form)
     useEffect(() => {
         const loadModules = async () => {
             if (!selectedSemestreId) {
@@ -205,20 +224,50 @@ const AdminRessourcesPage: React.FC = () => {
         }
     };
 
-    // Filter resources dynamically for management table
-    const filteredResourcesList = allResources.filter(r => {
-        const mod = r.module;
-        const sem = mod?.semestre;
-        const fil = sem?.filiere;
-        const niv = fil?.niveau;
+    // FILTER LOGIC FOR TABLE DROPDOWNS
+    const filieresForFilter = filterNiveauId === 'ALL'
+        ? allFilieres
+        : allFilieres.filter(f => f.niveauId === filterNiveauId);
 
-        if (filterNiveauId !== 'ALL' && niv?.id !== filterNiveauId) return false;
-        if (filterFiliereId !== 'ALL' && fil?.id !== filterFiliereId) return false;
+    const modulesForFilter = allModules.filter(m => {
+        const sem = allSemestres.find(s => s.id === m.semestreId);
+        const fil = allFilieres.find(f => f.id === sem?.filiereId);
+
+        if (filterFiliereId !== 'ALL' && sem?.filiereId !== filterFiliereId) return false;
+        if (filterNiveauId !== 'ALL' && fil?.niveauId !== filterNiveauId) return false;
+        return true;
+    });
+
+    // FILTER RESOURCES LIST
+    const filteredResourcesList = allResources.filter(r => {
+        const mod = r.module || allModules.find(m => m.id === r.moduleId);
+        const sem = mod?.semestre || (mod ? allSemestres.find(s => s.id === (mod as ModuleItem).semestreId) : undefined);
+        const fil = sem?.filiere || (sem ? allFilieres.find(f => f.id === (sem as Semestre).filiereId) : undefined);
+        const niv = fil?.niveau || (fil ? niveaux.find(n => n.id === fil.niveauId) : undefined);
+
+        const filiereId = fil?.id;
+        const niveauId = fil?.niveauId || niv?.id;
+
+        if (filterNiveauId !== 'ALL' && niveauId !== filterNiveauId) return false;
+        if (filterFiliereId !== 'ALL' && filiereId !== filterFiliereId) return false;
         if (filterModuleId !== 'ALL' && r.moduleId !== filterModuleId) return false;
         if (filterType !== 'ALL' && r.type !== filterType) return false;
 
         return true;
     });
+
+    // PAGINATION CALCULATIONS
+    const totalPages = Math.ceil(filteredResourcesList.length / pageSize) || 1;
+    const paginatedResources = filteredResourcesList.slice(
+        (currentPage - 1) * pageSize,
+        currentPage * pageSize
+    );
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(1);
+        }
+    }, [filteredResourcesList.length, totalPages, currentPage]);
 
     return (
         <div className="space-y-8">
@@ -309,7 +358,7 @@ const AdminRessourcesPage: React.FC = () => {
                                 required
                                 className="w-full px-3.5 py-2.5 rounded-xl border border-[#E5E3D8] text-xs bg-white focus:outline-none focus:border-[#E05320] disabled:opacity-50 font-bold text-[#E05320]"
                             >
-                                <option value="">Select Target Module</option>
+                                <option value="">Choisir le Module</option>
                                 {modules.map(m => (
                                     <option key={m.id} value={m.id}>
                                         {m.code || 'MOD'} — {m.name}
@@ -402,6 +451,7 @@ const AdminRessourcesPage: React.FC = () => {
                                     setFilterNiveauId(e.target.value);
                                     setFilterFiliereId('ALL');
                                     setFilterModuleId('ALL');
+                                    setCurrentPage(1);
                                 }}
                                 className="w-full px-3 py-2 rounded-xl border border-[#E5E3D8] text-xs bg-white focus:outline-none focus:border-[#E05320] font-medium"
                             >
@@ -420,18 +470,16 @@ const AdminRessourcesPage: React.FC = () => {
                                 onChange={(e) => {
                                     setFilterFiliereId(e.target.value);
                                     setFilterModuleId('ALL');
+                                    setCurrentPage(1);
                                 }}
                                 className="w-full px-3 py-2 rounded-xl border border-[#E5E3D8] text-xs bg-white focus:outline-none focus:border-[#E05320] font-medium"
                             >
                                 <option value="ALL">Toutes les filières</option>
-                                {niveaux
-                                    .filter(n => filterNiveauId === 'ALL' || n.id === filterNiveauId)
-                                    .flatMap(() => filieres)
-                                    .map(f => (
-                                        <option key={f.id} value={f.id}>
-                                            {f.code ? `${f.code} — ` : ''}{f.name}
-                                        </option>
-                                    ))}
+                                {filieresForFilter.map(f => (
+                                    <option key={f.id} value={f.id}>
+                                        {f.code ? `${f.code} — ` : ''}{f.name}
+                                    </option>
+                                ))}
                             </select>
                         </div>
 
@@ -440,13 +488,16 @@ const AdminRessourcesPage: React.FC = () => {
                             <label className="block text-[11px] font-bold text-[#8E8A83] mb-1">Module</label>
                             <select
                                 value={filterModuleId}
-                                onChange={(e) => setFilterModuleId(e.target.value)}
+                                onChange={(e) => {
+                                    setFilterModuleId(e.target.value);
+                                    setCurrentPage(1);
+                                }}
                                 className="w-full px-3 py-2 rounded-xl border border-[#E5E3D8] text-xs bg-white focus:outline-none focus:border-[#E05320] font-medium"
                             >
                                 <option value="ALL">Tous les modules</option>
-                                {allResources.map(r => r.module).filter(Boolean).map(m => (
-                                    <option key={m!.id} value={m!.id}>
-                                        {m!.code || 'MOD'} — {m!.name}
+                                {modulesForFilter.map(m => (
+                                    <option key={m.id} value={m.id}>
+                                        {m.code || 'MOD'} — {m.name}
                                     </option>
                                 ))}
                             </select>
@@ -457,7 +508,10 @@ const AdminRessourcesPage: React.FC = () => {
                             <label className="block text-[11px] font-bold text-[#8E8A83] mb-1">Type de Document</label>
                             <select
                                 value={filterType}
-                                onChange={(e) => setFilterType(e.target.value)}
+                                onChange={(e) => {
+                                    setFilterType(e.target.value);
+                                    setCurrentPage(1);
+                                }}
                                 className="w-full px-3 py-2 rounded-xl border border-[#E5E3D8] text-xs bg-white focus:outline-none focus:border-[#E05320] font-medium"
                             >
                                 <option value="ALL">Tous les types (COURS, TD, TP, EXAMEN)</option>
@@ -474,7 +528,7 @@ const AdminRessourcesPage: React.FC = () => {
                 {loadingList ? (
                     <p className="text-xs text-[#8E8A83] text-center py-8">Chargement des ressources en base de données...</p>
                 ) : (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto space-y-4">
                         <table className="w-full text-left text-xs">
                             <thead>
                                 <tr className="border-b border-[#E5E3D8] text-[#8E8A83] uppercase tracking-wider">
@@ -487,11 +541,11 @@ const AdminRessourcesPage: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#F0EEE6]">
-                                {filteredResourcesList.map(res => {
-                                    const mod = res.module;
-                                    const sem = mod?.semestre;
-                                    const fil = sem?.filiere;
-                                    const niv = fil?.niveau;
+                                {paginatedResources.map(res => {
+                                    const mod = res.module || allModules.find(m => m.id === res.moduleId);
+                                    const sem = mod?.semestre || (mod ? allSemestres.find(s => s.id === (mod as ModuleItem).semestreId) : undefined);
+                                    const fil = sem?.filiere || (sem ? allFilieres.find(f => f.id === (sem as Semestre).filiereId) : undefined);
+                                    const niv = fil?.niveau || (fil ? niveaux.find(n => n.id === fil.niveauId) : undefined);
                                     const typeLabel = res.type === 'COURSE' ? 'COURS' : res.type;
                                     const sizeMb = res.sizeBytes ? (res.sizeBytes / (1024 * 1024)).toFixed(1) + ' MB' : '1 MB';
 
@@ -552,6 +606,18 @@ const AdminRessourcesPage: React.FC = () => {
                                 )}
                             </tbody>
                         </table>
+
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            totalItems={filteredResourcesList.length}
+                            pageSize={pageSize}
+                            onPageChange={setCurrentPage}
+                            onPageSizeChange={(size) => {
+                                setPageSize(size);
+                                setCurrentPage(1);
+                            }}
+                        />
                     </div>
                 )}
             </div>
