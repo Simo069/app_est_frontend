@@ -37,7 +37,7 @@ const ExamsPage: React.FC = () => {
                 const [nivs, fils, resList] = await Promise.all([
                     niveauService.getAll().catch(() => []),
                     filiereService.getAll().catch(() => []),
-                    resourceService.getAll(token).catch(() => [])
+                    resourceService.getAll(token, 'EXAM').catch(() => [])
                 ]);
 
                 setNiveaux(nivs);
@@ -80,6 +80,7 @@ const ExamsPage: React.FC = () => {
 
     // Filter resources list
     const filteredExams = resources.filter(res => {
+        if (res.type !== 'EXAM') return false;
         const mod = res.module;
         const sem = mod?.semestre;
         const fil = sem?.filiere;

@@ -36,9 +36,10 @@ export interface ResourceApiItem {
 }
 
 export const resourceService = {
-    async getAll(token?: string | null): Promise<ResourceApiItem[]> {
+    async getAll(token?: string | null, type?: ResourceTypeEnum): Promise<ResourceApiItem[]> {
         const headers = token ? getAuthHeaders(token) : {};
-        const res = await fetch(`${API_URL}/ressources`, { headers });
+        const query = type ? `?type=${type}` : '';
+        const res = await fetch(`${API_URL}/ressources${query}`, { headers });
         if (!res.ok) throw new Error('Impossible de récupérer la liste des ressources');
         return res.json();
     },
