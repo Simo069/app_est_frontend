@@ -40,22 +40,34 @@ interface Module {
     };
 }
 
-const isOfficeDoc = (doc?: DocumentResource) => {
+const isOfficeDoc = (doc?: DocumentResource, url?: string | null) => {
     if (!doc) return false;
     const fmt = (doc.format || '').toLowerCase();
     const ttl = (doc.title || '').toLowerCase();
     const fn = (doc.filename || '').toLowerCase();
     const mime = (doc.mimeType || '').toLowerCase();
 
+    let urlPath = '';
+    if (url) {
+        try {
+            urlPath = new URL(url).pathname.toLowerCase();
+        } catch {
+            urlPath = (url || '').split('?')[0].toLowerCase();
+        }
+    }
+
+    const isOfficeExt = (str: string) =>
+        /\.(docx|doc|xlsx|xls|csv|pptx|ppt)($|\?|\/)/i.test(str) ||
+        str.endsWith('.docx') || str.endsWith('.doc') ||
+        str.endsWith('.xlsx') || str.endsWith('.xls') || str.endsWith('.csv') ||
+        str.endsWith('.pptx') || str.endsWith('.ppt');
+
     return (
         fmt === 'docx' || fmt === 'xlsx' || fmt === 'ppt' ||
         mime.includes('word') || mime.includes('excel') || mime.includes('spreadsheet') || mime.includes('presentation') || mime.includes('ms-') || mime.includes('officedocument') ||
-        fn.endsWith('.docx') || fn.endsWith('.doc') ||
-        fn.endsWith('.xlsx') || fn.endsWith('.xls') || fn.endsWith('.csv') ||
-        fn.endsWith('.pptx') || fn.endsWith('.ppt') ||
-        ttl.endsWith('.docx') || ttl.endsWith('.doc') ||
-        ttl.endsWith('.xlsx') || ttl.endsWith('.xls') || ttl.endsWith('.csv') ||
-        ttl.endsWith('.pptx') || ttl.endsWith('.ppt')
+        isOfficeExt(fn) ||
+        isOfficeExt(ttl) ||
+        isOfficeExt(urlPath)
     );
 };
 
@@ -217,11 +229,28 @@ const ModuleDetailPage: React.FC = () => {
         else if (itemTypeRaw === 'TP') type = 'TP';
         else if (itemTypeRaw === 'EXAM' || itemTypeRaw === 'EXAMENS') type = 'EXAMENS';
 
-        const ext = item.filename ? item.filename.split('.').pop()?.toUpperCase() : '';
+        const filenameExt = item.filename ? item.filename.split('.').pop()?.toUpperCase() : '';
+        const titleExt = item.title ? item.title.split('.').pop()?.toUpperCase() : '';
+        const ext = filenameExt || titleExt;
+        const mime = item.mimeType ? item.mimeType.toLowerCase() : '';
+
         let format: FileFormat = 'PDF';
-        if (ext === 'DOCX' || ext === 'DOC') format = 'DOCX';
-        else if (ext === 'XLSX' || ext === 'XLS' || ext === 'CSV') format = 'XLSX';
-        else if (ext === 'PPTX' || ext === 'PPT') format = 'PPT';
+        if (
+            ext === 'DOCX' || ext === 'DOC' ||
+            mime.includes('word') || mime.includes('officedocument.word')
+        ) {
+            format = 'DOCX';
+        } else if (
+            ext === 'XLSX' || ext === 'XLS' || ext === 'CSV' ||
+            mime.includes('excel') || mime.includes('spreadsheet') || mime.includes('officedocument.spreadsheet')
+        ) {
+            format = 'XLSX';
+        } else if (
+            ext === 'PPTX' || ext === 'PPT' ||
+            mime.includes('presentation') || mime.includes('powerpoint') || mime.includes('officedocument.presentation')
+        ) {
+            format = 'PPT';
+        }
 
         const sizeMb = item.sizeBytes ? (item.sizeBytes / (1024 * 1024)).toFixed(1) + ' MB' : '1.0 MB';
 
@@ -257,6 +286,7 @@ const ModuleDetailPage: React.FC = () => {
 
     // Fetch presigned MinIO URL for selected document
     useEffect(() => {
+        setDocPreviewUrl(null);
         const fetchPreviewUrl = async () => {
             if (!activeDoc?.id) {
                 setDocPreviewUrl(null);
@@ -602,7 +632,7 @@ const ModuleDetailPage: React.FC = () => {
                                             {/* Visualiser button */}
                                             <button
                                                 onClick={() => {
-                                                    if (isOfficeDoc(activeDoc) && docPreviewUrl) {
+                                                    if (isOfficeDoc(activeDoc, docPreviewUrl) && docPreviewUrl) {
                                                         window.open(`https://docs.google.com/gview?url=${encodeURIComponent(docPreviewUrl)}`, '_blank');
                                                     } else {
                                                         setIsFullscreen(true);
@@ -663,7 +693,7 @@ const ModuleDetailPage: React.FC = () => {
                                             </button>
                                             <button
                                                 onClick={() => {
-                                                    if (isOfficeDoc(activeDoc) && docPreviewUrl) {
+                                                    if (isOfficeDoc(activeDoc, docPreviewUrl) && docPreviewUrl) {
                                                         window.open(`https://docs.google.com/gview?url=${encodeURIComponent(docPreviewUrl)}`, '_blank');
                                                     } else {
                                                         setIsFullscreen(true);
@@ -679,8 +709,29 @@ const ModuleDetailPage: React.FC = () => {
 
                                     {/* Document Canvas Body */}
                                     <div className="flex-1 bg-[#EAE8E0] p-4 sm:p-6 overflow-y-auto flex items-center justify-center min-h-[400px]">
-                                        {docPreviewUrl ? (
-                                            isOfficeDoc(activeDoc) ? (
+                                        {loadingDocUrl ? (
+                                            <div className="text-center p-8 space-y-3">
+                                                <div className="w-8 h-8 border-4 border-[#E05320] border-t-transparent rounded-full animate-spin mx-auto" />
+                                                <p className="text-xs font-bold text-[#8E8A83]">Chargement du document depuis le serveur...</p>
+                                            </div>
+                                        ) : activeTab === 'EXAMENS' && !isAuthenticated ? (
+                                            <div className="bg-white rounded-2xl p-8 border border-[#DDD9CE] shadow-md text-center max-w-sm space-y-4">
+                                                <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto">
+                                                    <Lock className="w-6 h-6" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-sm text-[#12100E]">Authentification requise pour les Examens</h4>
+                                                    <p className="text-xs text-[#8E8A83] mt-1">Les annales et sujets d'examens sont réservés aux étudiants connectés de l'EST Casa.</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => setIsLoginOpen(true)}
+                                                    className="w-full py-2.5 bg-[#E05320] text-white rounded-xl text-xs font-bold shadow-sm hover:bg-[#C94518] cursor-pointer"
+                                                >
+                                                    Se connecter pour accéder à l'épreuve
+                                                </button>
+                                            </div>
+                                        ) : docPreviewUrl ? (
+                                            isOfficeDoc(activeDoc, docPreviewUrl) ? (
                                                 <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#DDD9CE] shadow-md text-center max-w-md space-y-4 my-auto">
                                                     <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto border border-blue-100">
                                                         <FileText className="w-7 h-7 text-[#E05320]" />
@@ -719,27 +770,6 @@ const ModuleDetailPage: React.FC = () => {
                                                     title={activeDoc.title}
                                                 />
                                             )
-                                        ) : loadingDocUrl ? (
-                                            <div className="text-center p-8 space-y-3">
-                                                <div className="w-8 h-8 border-4 border-[#E05320] border-t-transparent rounded-full animate-spin mx-auto" />
-                                                <p className="text-xs font-bold text-[#8E8A83]">Chargement du document depuis le serveur...</p>
-                                            </div>
-                                        ) : activeTab === 'EXAMENS' && !isAuthenticated ? (
-                                            <div className="bg-white rounded-2xl p-8 border border-[#DDD9CE] shadow-md text-center max-w-sm space-y-4">
-                                                <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto">
-                                                    <Lock className="w-6 h-6" />
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-bold text-sm text-[#12100E]">Authentification requise pour les Examens</h4>
-                                                    <p className="text-xs text-[#8E8A83] mt-1">Les annales et sujets d'examens sont réservés aux étudiants connectés de l'EST Casa.</p>
-                                                </div>
-                                                <button
-                                                    onClick={() => setIsLoginOpen(true)}
-                                                    className="w-full py-2.5 bg-[#E05320] text-white rounded-xl text-xs font-bold shadow-sm hover:bg-[#C94518] cursor-pointer"
-                                                >
-                                                    Se connecter pour accéder à l'épreuve
-                                                </button>
-                                            </div>
                                         ) : (
                                             <div className="bg-white rounded-2xl p-8 border border-[#DDD9CE] shadow-md text-center max-w-sm space-y-4">
                                                 <div className="w-12 h-12 bg-slate-100 text-slate-600 rounded-2xl flex items-center justify-center mx-auto">
@@ -791,7 +821,7 @@ const ModuleDetailPage: React.FC = () => {
 
                     <div className="flex-1 bg-white rounded-2xl p-4 overflow-hidden max-w-5xl mx-auto w-full shadow-2xl flex flex-col items-center justify-center">
                         {docPreviewUrl ? (
-                            isOfficeDoc(activeDoc) ? (
+                            isOfficeDoc(activeDoc, docPreviewUrl) ? (
                                 <iframe
                                     src={`https://docs.google.com/gview?url=${encodeURIComponent(docPreviewUrl)}&embedded=true`}
                                     className="w-full h-full border-0 rounded-xl"
