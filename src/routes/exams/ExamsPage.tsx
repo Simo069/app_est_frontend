@@ -304,7 +304,15 @@ const ExamsPage: React.FC = () => {
                                 <p className="text-xs font-bold text-[#8E8A83]">Chargement du sujet depuis MinIO...</p>
                             </div>
                         ) : previewUrl ? (
-                            <iframe src={previewUrl} className="w-full h-full border-0 rounded-2xl" title={activeExam.title} />
+                            activeExam.title.toLowerCase().match(/\.(docx|xlsx|pptx|doc|xls|ppt)$/) || activeExam.filename?.toLowerCase().match(/\.(docx|xlsx|pptx|doc|xls|ppt)$/) ? (
+                                <iframe
+                                    src={`https://docs.google.com/gview?url=${encodeURIComponent(previewUrl)}&embedded=true`}
+                                    className="w-full h-full border-0 rounded-2xl"
+                                    title={activeExam.title}
+                                />
+                            ) : (
+                                <iframe src={previewUrl} className="w-full h-full border-0 rounded-2xl" title={activeExam.title} />
+                            )
                         ) : (
                             <div className="flex items-center justify-center h-full text-center text-xs text-[#8E8A83]">
                                 Impossible d'afficher l'aperçu pour cet examen.

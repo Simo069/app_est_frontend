@@ -40,6 +40,16 @@ interface Module {
     };
 }
 
+const isOfficeDoc = (format?: string, title?: string) => {
+    const fmt = (format || '').toLowerCase();
+    const ttl = (title || '').toLowerCase();
+    return (
+        fmt.includes('doc') || fmt.includes('xls') || fmt.includes('ppt') ||
+        ttl.endsWith('.docx') || ttl.endsWith('.xlsx') || ttl.endsWith('.pptx') ||
+        ttl.endsWith('.doc') || ttl.endsWith('.xls') || ttl.endsWith('.ppt')
+    );
+};
+
 const ModuleDetailPage: React.FC = () => {
     const { moduleId } = useParams<{ moduleId: string }>();
     const navigate = useNavigate();
@@ -563,9 +573,9 @@ const ModuleDetailPage: React.FC = () => {
 
                             {activeDoc ? (
                                 <>
-                                    <div className="p-4 sm:p-5 border-b border-[#E5E3D8] bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                        <div>
-                                            <h3 className="font-syne font-extrabold text-base sm:text-lg text-[#12100E] leading-tight mb-1">
+                                    <div className="p-4 sm:p-5 border-b border-[#E5E3D8] bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 overflow-hidden">
+                                        <div className="min-w-0 flex-1">
+                                            <h3 className="font-syne font-extrabold text-base text-[#12100E] leading-tight mb-1 truncate" title={activeDoc.title}>
                                                 {activeDoc.title}
                                             </h3>
                                             <p className="text-xs text-[#8E8A83] font-medium">
@@ -576,9 +586,15 @@ const ModuleDetailPage: React.FC = () => {
                                         <div className="flex items-center gap-2 flex-shrink-0">
                                             {/* Visualiser button */}
                                             <button
-                                                onClick={() => setIsFullscreen(true)}
+                                                onClick={() => {
+                                                    if (isOfficeDoc(activeDoc.format, activeDoc.title) && docPreviewUrl) {
+                                                        window.open(`https://docs.google.com/gview?url=${encodeURIComponent(docPreviewUrl)}`, '_blank');
+                                                    } else {
+                                                        setIsFullscreen(true);
+                                                    }
+                                                }}
                                                 disabled={activeTab === 'EXAMENS' && !isAuthenticated}
-                                                className="flex items-center gap-1.5 px-3 py-2 bg-[#F7F6F0] hover:bg-[#EFECE3] disabled:opacity-40 text-[#12100E] text-xs font-bold rounded-xl transition-all cursor-pointer"
+                                                className="flex items-center gap-1.5 px-3 py-2 bg-[#F7F6F0] hover:bg-[#EFECE3] disabled:opacity-40 text-[#12100E] text-xs font-bold rounded-xl transition-all cursor-pointer flex-shrink-0 whitespace-nowrap"
                                             >
                                                 <Eye className="w-3.5 h-3.5 text-[#E05320]" />
                                                 <span>Plein écran</span>
@@ -587,7 +603,7 @@ const ModuleDetailPage: React.FC = () => {
                                             {/* Telecharger button */}
                                             <button
                                                 onClick={() => handleDownload(activeDoc)}
-                                                className="flex items-center gap-1.5 px-4 py-2 bg-[#12100E] hover:bg-[#2A2724] text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-2xs"
+                                                className="flex items-center gap-1.5 px-3.5 py-2 bg-[#12100E] hover:bg-[#2A2724] text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-2xs flex-shrink-0 whitespace-nowrap"
                                             >
                                                 <Download className="w-3.5 h-3.5" />
                                                 <span>Télécharger</span>
@@ -631,7 +647,13 @@ const ModuleDetailPage: React.FC = () => {
                                                 <ZoomIn className="w-4 h-4" />
                                             </button>
                                             <button
-                                                onClick={() => setIsFullscreen(true)}
+                                                onClick={() => {
+                                                    if (isOfficeDoc(activeDoc.format, activeDoc.title) && docPreviewUrl) {
+                                                        window.open(`https://docs.google.com/gview?url=${encodeURIComponent(docPreviewUrl)}`, '_blank');
+                                                    } else {
+                                                        setIsFullscreen(true);
+                                                    }
+                                                }}
                                                 disabled={activeTab === 'EXAMENS' && !isAuthenticated}
                                                 className="p-1 hover:bg-white rounded ml-2 cursor-pointer disabled:opacity-40"
                                             >
@@ -643,11 +665,45 @@ const ModuleDetailPage: React.FC = () => {
                                     {/* Document Canvas Body */}
                                     <div className="flex-1 bg-[#EAE8E0] p-4 sm:p-6 overflow-y-auto flex items-center justify-center min-h-[400px]">
                                         {docPreviewUrl ? (
-                                            <iframe
-                                                src={docPreviewUrl}
-                                                className="w-full h-full min-h-[500px] bg-white rounded-xl border border-[#DDD9CE] shadow-md"
-                                                title={activeDoc.title}
-                                            />
+                                            isOfficeDoc(activeDoc.format, activeDoc.title) ? (
+                                                <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#DDD9CE] shadow-md text-center max-w-md space-y-4 my-auto">
+                                                    <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto border border-blue-100">
+                                                        <FileText className="w-7 h-7 text-[#E05320]" />
+                                                    </div>
+                                                    <div>
+                                                        <span className="inline-block px-2.5 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-extrabold rounded-md uppercase tracking-wider mb-2">
+                                                            Document Office ({activeDoc.format})
+                                                        </span>
+                                                        <h4 className="font-syne font-extrabold text-base text-[#12100E] line-clamp-2">{activeDoc.title}</h4>
+                                                        <p className="text-xs text-[#8E8A83] mt-1 font-medium">{activeDoc.format} · {activeDoc.size}</p>
+                                                    </div>
+                                                    <p className="text-xs text-[#8E8A83] bg-[#FAF9F5] p-3 rounded-xl border border-[#E5E3D8] text-left leading-relaxed">
+                                                        💡 Les documents <strong>.docx / .xlsx</strong> ne se téléchargent plus automatiquement. Vous pouvez ouvrir l'aperçu en ligne ou télécharger le fichier à la demande.
+                                                    </p>
+                                                    <div className="flex flex-col sm:flex-row items-center gap-2">
+                                                        <button
+                                                            onClick={() => window.open(`https://docs.google.com/gview?url=${encodeURIComponent(docPreviewUrl)}`, '_blank')}
+                                                            className="w-full py-2.5 bg-[#F7F6F0] hover:bg-[#EFECE3] text-[#12100E] rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2 border border-[#E5E3D8]"
+                                                        >
+                                                            <Eye className="w-4 h-4 text-[#E05320]" />
+                                                            <span>Aperçu Google Docs</span>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDownload(activeDoc)}
+                                                            className="w-full py-2.5 bg-[#12100E] hover:bg-[#2A2724] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
+                                                        >
+                                                            <Download className="w-4 h-4" />
+                                                            <span>Télécharger</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <iframe
+                                                    src={docPreviewUrl}
+                                                    className="w-full h-full min-h-[500px] bg-white rounded-xl border border-[#DDD9CE] shadow-md"
+                                                    title={activeDoc.title}
+                                                />
+                                            )
                                         ) : loadingDocUrl ? (
                                             <div className="text-center p-8 space-y-3">
                                                 <div className="w-8 h-8 border-4 border-[#E05320] border-t-transparent rounded-full animate-spin mx-auto" />
@@ -718,9 +774,17 @@ const ModuleDetailPage: React.FC = () => {
                         </button>
                     </div>
 
-                    <div className="flex-1 bg-white rounded-2xl p-4 overflow-hidden max-w-5xl mx-auto w-full shadow-2xl">
+                    <div className="flex-1 bg-white rounded-2xl p-4 overflow-hidden max-w-5xl mx-auto w-full shadow-2xl flex flex-col items-center justify-center">
                         {docPreviewUrl ? (
-                            <iframe src={docPreviewUrl} className="w-full h-full border-0 rounded-xl" title={activeDoc.title} />
+                            isOfficeDoc(activeDoc.format, activeDoc.title) ? (
+                                <iframe
+                                    src={`https://docs.google.com/gview?url=${encodeURIComponent(docPreviewUrl)}&embedded=true`}
+                                    className="w-full h-full border-0 rounded-xl"
+                                    title={activeDoc.title}
+                                />
+                            ) : (
+                                <iframe src={docPreviewUrl} className="w-full h-full border-0 rounded-xl" title={activeDoc.title} />
+                            )
                         ) : (
                             <div className="flex items-center justify-center h-full text-center text-xs text-[#8E8A83]">
                                 Aperçu plein écran non disponible.
