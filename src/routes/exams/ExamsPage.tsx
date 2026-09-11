@@ -304,7 +304,14 @@ const ExamsPage: React.FC = () => {
                                 <p className="text-xs font-bold text-[#8E8A83]">Chargement du sujet depuis MinIO...</p>
                             </div>
                         ) : previewUrl ? (
-                            activeExam.title.toLowerCase().match(/\.(docx|xlsx|pptx|doc|xls|ppt)$/) || activeExam.filename?.toLowerCase().match(/\.(docx|xlsx|pptx|doc|xls|ppt)$/) ? (
+                            (
+                                activeExam.mimeType?.toLowerCase().includes('word') ||
+                                activeExam.mimeType?.toLowerCase().includes('excel') ||
+                                activeExam.mimeType?.toLowerCase().includes('spreadsheet') ||
+                                activeExam.mimeType?.toLowerCase().includes('officedocument') ||
+                                activeExam.title.toLowerCase().match(/\.(docx|xlsx|pptx|doc|xls|ppt|csv)$/i) ||
+                                activeExam.filename?.toLowerCase().match(/\.(docx|xlsx|pptx|doc|xls|ppt|csv)$/i)
+                            ) ? (
                                 <iframe
                                     src={`https://docs.google.com/gview?url=${encodeURIComponent(previewUrl)}&embedded=true`}
                                     className="w-full h-full border-0 rounded-2xl"

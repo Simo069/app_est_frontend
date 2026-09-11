@@ -40,13 +40,22 @@ interface Module {
     };
 }
 
-const isOfficeDoc = (format?: string, title?: string) => {
-    const fmt = (format || '').toLowerCase();
-    const ttl = (title || '').toLowerCase();
+const isOfficeDoc = (doc?: DocumentResource) => {
+    if (!doc) return false;
+    const fmt = (doc.format || '').toLowerCase();
+    const ttl = (doc.title || '').toLowerCase();
+    const fn = (doc.filename || '').toLowerCase();
+    const mime = (doc.mimeType || '').toLowerCase();
+
     return (
-        fmt.includes('doc') || fmt.includes('xls') || fmt.includes('ppt') ||
-        ttl.endsWith('.docx') || ttl.endsWith('.xlsx') || ttl.endsWith('.pptx') ||
-        ttl.endsWith('.doc') || ttl.endsWith('.xls') || ttl.endsWith('.ppt')
+        fmt === 'docx' || fmt === 'xlsx' || fmt === 'ppt' ||
+        mime.includes('word') || mime.includes('excel') || mime.includes('spreadsheet') || mime.includes('presentation') || mime.includes('ms-') || mime.includes('officedocument') ||
+        fn.endsWith('.docx') || fn.endsWith('.doc') ||
+        fn.endsWith('.xlsx') || fn.endsWith('.xls') || fn.endsWith('.csv') ||
+        fn.endsWith('.pptx') || fn.endsWith('.ppt') ||
+        ttl.endsWith('.docx') || ttl.endsWith('.doc') ||
+        ttl.endsWith('.xlsx') || ttl.endsWith('.xls') || ttl.endsWith('.csv') ||
+        ttl.endsWith('.pptx') || ttl.endsWith('.ppt')
     );
 };
 
@@ -208,8 +217,12 @@ const ModuleDetailPage: React.FC = () => {
         else if (itemTypeRaw === 'TP') type = 'TP';
         else if (itemTypeRaw === 'EXAM' || itemTypeRaw === 'EXAMENS') type = 'EXAMENS';
 
-        const ext = item.filename ? item.filename.split('.').pop()?.toUpperCase() : 'PDF';
-        const format: FileFormat = (ext === 'DOCX' || ext === 'DOC') ? 'DOCX' : (ext === 'PPTX' || ext === 'PPT') ? 'PPT' : 'PDF';
+        const ext = item.filename ? item.filename.split('.').pop()?.toUpperCase() : '';
+        let format: FileFormat = 'PDF';
+        if (ext === 'DOCX' || ext === 'DOC') format = 'DOCX';
+        else if (ext === 'XLSX' || ext === 'XLS' || ext === 'CSV') format = 'XLSX';
+        else if (ext === 'PPTX' || ext === 'PPT') format = 'PPT';
+
         const sizeMb = item.sizeBytes ? (item.sizeBytes / (1024 * 1024)).toFixed(1) + ' MB' : '1.0 MB';
 
         return {
@@ -220,6 +233,8 @@ const ModuleDetailPage: React.FC = () => {
             format,
             size: sizeMb,
             addedDate: item.createdAt ? new Date(item.createdAt).toLocaleDateString('fr-FR') : 'Récemment',
+            filename: item.filename,
+            mimeType: item.mimeType,
             requiresAuth: (type === 'EXAMENS'),
             isOfficial: true
         };
@@ -587,7 +602,7 @@ const ModuleDetailPage: React.FC = () => {
                                             {/* Visualiser button */}
                                             <button
                                                 onClick={() => {
-                                                    if (isOfficeDoc(activeDoc.format, activeDoc.title) && docPreviewUrl) {
+                                                    if (isOfficeDoc(activeDoc) && docPreviewUrl) {
                                                         window.open(`https://docs.google.com/gview?url=${encodeURIComponent(docPreviewUrl)}`, '_blank');
                                                     } else {
                                                         setIsFullscreen(true);
@@ -648,7 +663,7 @@ const ModuleDetailPage: React.FC = () => {
                                             </button>
                                             <button
                                                 onClick={() => {
-                                                    if (isOfficeDoc(activeDoc.format, activeDoc.title) && docPreviewUrl) {
+                                                    if (isOfficeDoc(activeDoc) && docPreviewUrl) {
                                                         window.open(`https://docs.google.com/gview?url=${encodeURIComponent(docPreviewUrl)}`, '_blank');
                                                     } else {
                                                         setIsFullscreen(true);
@@ -665,7 +680,7 @@ const ModuleDetailPage: React.FC = () => {
                                     {/* Document Canvas Body */}
                                     <div className="flex-1 bg-[#EAE8E0] p-4 sm:p-6 overflow-y-auto flex items-center justify-center min-h-[400px]">
                                         {docPreviewUrl ? (
-                                            isOfficeDoc(activeDoc.format, activeDoc.title) ? (
+                                            isOfficeDoc(activeDoc) ? (
                                                 <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#DDD9CE] shadow-md text-center max-w-md space-y-4 my-auto">
                                                     <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto border border-blue-100">
                                                         <FileText className="w-7 h-7 text-[#E05320]" />
@@ -776,7 +791,7 @@ const ModuleDetailPage: React.FC = () => {
 
                     <div className="flex-1 bg-white rounded-2xl p-4 overflow-hidden max-w-5xl mx-auto w-full shadow-2xl flex flex-col items-center justify-center">
                         {docPreviewUrl ? (
-                            isOfficeDoc(activeDoc.format, activeDoc.title) ? (
+                            isOfficeDoc(activeDoc) ? (
                                 <iframe
                                     src={`https://docs.google.com/gview?url=${encodeURIComponent(docPreviewUrl)}&embedded=true`}
                                     className="w-full h-full border-0 rounded-xl"

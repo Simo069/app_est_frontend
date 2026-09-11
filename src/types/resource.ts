@@ -1,5 +1,5 @@
 export type ResourceType = 'COURS' | 'TD' | 'TP' | 'EXAMENS';
-export type FileFormat = 'PDF' | 'PPT' | 'DOCX';
+export type FileFormat = 'PDF' | 'PPT' | 'DOCX' | 'XLSX';
 
 export interface DocumentResource {
     id: string;
@@ -9,6 +9,8 @@ export interface DocumentResource {
     format: FileFormat;
     size: string;
     addedDate: string;
+    filename?: string;
+    mimeType?: string;
     pagesCount?: number;
     requiresAuth?: boolean;
     isOfficial?: boolean;
