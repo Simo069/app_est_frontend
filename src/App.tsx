@@ -30,10 +30,12 @@ import AdminUsersPage from './routes/admin/pages/AdminUsersPage';
 
 import ProtectedSelectionRoute from './components/ProtectedSelectionRoute';
 import ProtectedRoute from './components/ProtectedRoute';
+import AnalyticsTracker from './components/AnalyticsTracker';
 
 const AppContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col antialiased">
+      <AnalyticsTracker />
       <Header />
       <main className="flex-1">
         <Routes>
