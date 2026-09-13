@@ -106,6 +106,8 @@ const FiliereSelection: React.FC = () => {
             filiere.id,
             filiere.name
         );
+
+        navigate('/modules');
     };
 
     const handleComplete = () => {

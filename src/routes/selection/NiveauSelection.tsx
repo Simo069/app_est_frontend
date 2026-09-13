@@ -74,6 +74,7 @@ const NiveauSelection: React.FC = () => {
     const handleSelect = (niveau: Niveau) => {
         setSelectedNiveau(niveau.id);
         updateNiveau(niveau.id, niveau.name);
+        navigate('/selection/filiere');
     };
 
     const handleNext = () => {
